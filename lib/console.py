@@ -33,7 +33,7 @@ class Console(Cmd, object):
   self._sessions = Queue() # holds attack sessions
   self.prompt = '{}{}{}>{} '.\
   format(colors['red'], getuser(), colors['blue'], colors['white'])
-
+ 
  def _help_menu(self):
   """"Show a list of commands which help can be displayed for.
   """
