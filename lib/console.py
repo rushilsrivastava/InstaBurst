@@ -109,7 +109,6 @@ class Console(Cmd, object):
    return
   return index, new_data
 
-
  def do_change_username(self, args):
   '''\n\tDescription: Change the username of a session that's within the queue
     \tUsage: change_username <id> <new_username>\n'''
