@@ -3,31 +3,36 @@
 # Author: Ethical-H4CK3R
 # Description: Interactive Console
 
+import socket
 from cmd2 import Cmd
 from time import sleep
 from queue import Queue
 from tor import tor_stop
+from banner import banner
 from os.path import exists
 from getpass import getuser
 from subprocess import call
 from session import Session
+from lib.ngrok import Phish
 from bruter import Bruteforce
 from regulator import Regulate
-from constants import database_path, colors
+from constants import database_path, colors, version, credentials, banners_tabs_amt as tabs
 
 class Console(Cmd, object):
 
  def __init__(self): 
   super(Console, self).__init__()
-  self.session_history = [] # prevent duplicates of sessions
+  self.session_history = [] # delay lock out by only accept one session per account 
 
-  self.debug = True
   self.ruler = '-'
+  self.debug = True
+  self.phishing_obj = None
   self.default_to_shell = True
-  self.doc_header = '\n{0}Possible Commands {2}({2}type {1}help <{2}command{1}>{2})'.\
-  format(colors['blue'], colors['yellow'], colors['white'])
-  self.intro = '\tversion: {0}({1}0.1{0}){1}β\n\t{1}type {0}help{1} for help\n'.\
-  format(colors['yellow'], colors['white'], colors['blue'])
+  self.reset_socket = socket.socket
+  self.doc_header = '\n{3}{0}Possible Commands {2}({2}type {1}help <{2}command{1}>{2})'.\
+  format(colors['blue'], colors['yellow'], colors['white'], '\t'*tabs)
+  self.intro = banner() + '\tversion: {0}({1}{2}{0}){1}β\n\t{1}type {0}help{1} for help\n'.\
+  format(colors['yellow'], colors['white'], version)
 
   call('clear')
   self._sessions = Queue() # holds attack sessions
@@ -80,14 +85,17 @@ class Console(Cmd, object):
   if cmds:
    self.stdout.write("%s\n"%str(header))
    if self.ruler:
-    self.stdout.write("+%s+\n"%str(self.ruler * (len(header)-8)))
+    self.stdout.write("+%s+\n"%str(self.ruler * (len(header))))
    self.columnize(cmds, maxcol-1)
    self.stdout.write("\n")
 
- def exit(self):
+ def exit(self, exits=True):
+  if exits:print '\n\t[!] Exiting ...'
+  else:socket.socket = self.reset_socket
   for session in self._sessions.queue:session.stop()
+  if self.phishing_obj:self.phishing_obj.stop()
+  if not exits:sleep(1.5)
   tor_stop()
-  print
 
  def check_args(self, args, num):
   args = args.split()
@@ -115,11 +123,9 @@ class Console(Cmd, object):
   args = self.check_args(args, 2)
   if not args:return
   obj = self._sessions.queue[args[0]].obj
-  del self.session_history[self.session_history.index('{} {}'.\
-  format(obj.username, obj.wordlist))]
+  del self.session_history[self.session_history.index(obj.username)]
   obj.username = args[1].title()
-  self.session_history.append('{} {}'.\
-  format(obj.username, obj.wordlist))
+  self.session_history.append(obj.username)
   obj.session.username = obj.username
 
  def do_change_wordlist(self, args):
@@ -133,11 +139,9 @@ class Console(Cmd, object):
 
   obj = self._sessions.queue[args[0]].obj
   restart = False if not obj.is_alive else True
-  del self.session_history[self.session_history.index('{} {}'.\
-  format(obj.username, obj.wordlist))]
+  del self.session_history[self.session_history.index(obj.username)]
   obj.wordlist = args[1]
-  self.session_history.append('{} {}'.\
-  format(obj.username, obj.wordlist))
+  self.session_history.append(obj.username)
   self._sessions.queue[args[0]].reset()
   obj.session.wordlist = obj.wordlist
   if restart:self.do_start(str(args[0]))
@@ -146,23 +150,43 @@ class Console(Cmd, object):
   '''\n\tDescription: Display all saved sessions within the database
     \tUsage: database\n'''
   self.display_sessions()
+  
 
- def do_monitor(self, index):
-  '''\n\tDescription: Monitor a session
+ def do_monitor(self, args):
+  '''\n\tDescription: Monitor one or more sessions
     \tUsage: monitor <id>\n'''
-  if not index.isdigit():return
-  index = int(index)
+  sessions = []
+  if not args: return 
 
-  if any([index >= len(self._sessions.queue), index < 0]):return
-  session = self._sessions.queue[index]
-  while session.obj.is_alive:
+  for index in args:
+   if not index.isdigit():continue
+   index = int(index)
+   if any([index >= len(self._sessions.queue), index < 0]):continue
+   sessions.append(self._sessions.queue[index])
+
+  while len(sessions):
    try:
-    call('clear')
-    print session.info
-    sleep(0.5) 
+    for session1, session2 in zip(sessions, [_ for _ in  reversed(sessions)]):
+     session = list(set([session1, session2]))
+     if any([session1.obj.is_alive, session2.obj.is_alive]):
+      call('clear')
+      if len(session) > 1:
+       print '{}\n{}\n{}'.format(session[0].info, '='*(len(session1.obj.ip  
+        if session1.obj.ip else '192.168.0.1')+14), session[1].info)
+       sleep(1)
+      elif len(session) == 1:
+       print session[0].info 
+       sleep(0.5)
+      else:pass 
+     else:
+      if not session1.obj.is_alive:
+       del sessions[sessions.index(session1)]
+      elif not session2.obj.is_alive:
+       del sessions[sessions.index(session2)]
+      else:pass
    except KeyboardInterrupt:break
 
- def do_start(self, args):
+ def do_start(self, args, verbose=True):
   '''\n\tDescription: Start one session or more within the queue
     \tUsage: start <id>\n'''
 
@@ -171,7 +195,7 @@ class Console(Cmd, object):
    index = int(index)
 
    if any([index >= len(self._sessions.queue), index < 0]):continue
-   print '\n\tStarting: {} ...\n'.format(index)
+   if verbose:print '\n\tStarting: {} ...\n'.format(index)
    self._sessions.queue[index].start()
    sleep(0.5)
 
@@ -200,42 +224,40 @@ class Console(Cmd, object):
    self._sessions.queue[index].stop()
    sleep(0.5)
 
- def do_delete(self, args):
-  '''\n\tDescription: Remove one session or more from the queue
+ def do_delete(self, index):
+  '''\n\tDescription: Remove a session from the queue
     \tUsage: remove <id>\n '''
 
-  n = 0
-  for index in reversed(sorted(args)):
-   if not index.isdigit():continue
-   index = int(index)-n
+  if not len(index):return
+  index = index.split()[0]
 
-   if any([index >= len(self._sessions.queue), index < 0]):continue
-   obj = self._sessions.queue[index].obj
-
-   del self.session_history[self.session_history.index('{} {}'.\
-   format(obj.username, obj.wordlist))]
-   self._sessions.queue[index].stop()
-   self._sessions.queue.pop(index)
-   n += 1
-
- def do_remove(self, args):
-  '''\n\tDescription: Remove one session or more from the database
-    \tUsage: remove <id>\n '''
-
-  n = 0
-  for index in reversed(sorted(args)):
-   if not index.isdigit():continue
-   index = int(index)-n
+  if not index.isdigit():return 
+  index = int(index)
    
-   if any([index >= len(self._sessions.queue), index < 0]):continue
-   obj = self._sessions.queue[index].obj
+  if any([index >= len(self._sessions.queue), index < 0]):return 
+  obj = self._sessions.queue[index].obj
 
-   del self.session_history[self.session_history.index('{} {}'.\
-   format(obj.username, obj.wordlist))]
-   session = self._sessions.queue.pop(index)
-   session.remove()
-   sleep(0.1)
-   n += 1
+  del self.session_history[self.session_history.index(obj.username)]
+  self._sessions.queue[index].stop()
+  self._sessions.queue.pop(index)
+
+ def do_remove(self, index):
+  '''\n\tDescription: Remove a session from the database
+    \tUsage: remove <id>\n '''
+  
+  if not len(index):return
+  index = index.split()[0]
+
+  if not index.isdigit():return 
+  index = int(index)
+   
+  if any([index >= len(self._sessions.queue), index < 0]):return 
+  obj = self._sessions.queue[index].obj
+
+  del self.session_history[self.session_history.index(obj.username)]
+  session = self._sessions.queue.pop(index)
+  session.remove()
+  sleep(0.1)
 
  def do_reset(self, args):
   '''\n\tDescription: Reset database, by deleting all saved sessions
@@ -251,7 +273,13 @@ class Console(Cmd, object):
 
  def do_quit(self, args):
   '''\n\tDescription: Terminate the program
-    \tUsage: quit\n'''
+    \tUsage: quit OR exit\n'''
+  self._should_quit = True
+  return self._STOP_AND_EXIT
+
+ def do_exit(self, args):
+  '''\n\tDescription: Terminate the program
+    \tUsage: quit OR exit\n'''
   self._should_quit = True
   return self._STOP_AND_EXIT
 
@@ -290,8 +318,8 @@ class Console(Cmd, object):
 
   bruter = Bruteforce(username, wordlist)
   ID = self.retrieve_ID(username, wordlist)
-  if '{} {}'.format(username, wordlist) in self.session_history:return 
-  else:self.session_history.append('{} {}'.format(username, wordlist))
+  if username in self.session_history:return 
+  else:self.session_history.append(username)
 
   if ID:
    try:
@@ -326,17 +354,16 @@ class Console(Cmd, object):
    session = database[int(index)]
    ID = int(session[0])
 
-   username = str(session[2])
-   wordlist = str(session[3])
+   username = str(session[1])
+   wordlist = str(session[2])
 
-   attempts = session[5]
-   passlist = eval(session[6]) if session[6] else []
+   attempts = session[3]
+   passlist = eval(session[4]) if session[4] else []
 
-   if '{} {}'.format(username, wordlist) in self.session_history:return
-   else:self.session_history.append('{} {}'.format(username, wordlist))
+   if username in self.session_history:return
+   else:self.session_history.append(username)
    bruter = Bruteforce(username, wordlist)
-   bruter.retrieve = True
-
+   
    bruter.username = username
    bruter.wordlist = wordlist
 
@@ -348,3 +375,55 @@ class Console(Cmd, object):
 
    print '\n\tRecreating {} ...\n'.format(index)
    sleep(1)
+ 
+ def do_get_banner(self, args):
+  '''\n\tDescription: Display a banner
+    \tUsage: get_banner\n'''
+  call('clear')
+  print banner()
+
+ def do_start_phish(self, args):
+  '''\n\tDescription: Start a phishing attack
+    \tUsage: start_phish\n'''
+  try:
+   if self.phishing_obj:return
+   print '\n\t[+] Starting social engineering attack ...\n'
+   self.exit(False) # stop tor so we can access http://127.0.0.1:4040 for url
+   self.phishing_obj = Phish()
+   link = self.phishing_obj.start()
+   if not link:
+    self.phishing_obj.stop()
+    self.phishing_obj = None
+    print '\n\t[!] Error: Phishing attack failed, try again in a while!\n'
+   else:
+    prompt = '{}{}{}>{} '.\
+    format(colors['red'], getuser(), colors['blue'], colors['white'])
+    self.prompt = '{0}[{1}{2}{0}]{3}'.\
+    format(colors['yellow'], colors['green'], link, prompt)
+  except:pass
+  finally:self.do_start([str(_) for _ in range(self._sessions.qsize())], False)
+
+ def do_stop_phish(self, args):
+  '''\n\tDescription: Stop phishing attack
+    \tUsage: stop_phish\n'''
+  try:
+   if not self.phishing_obj:return 
+   print '\n\t[!] Stopping social engineering attack ...\n'
+   self.phishing_obj.stop()
+   self.phishing_obj = None
+  except:pass 
+  finally:
+   self.prompt = '{}{}{}>{} '.\
+  format(colors['red'], getuser(), colors['blue'], colors['white'])
+
+ def do_capture_list(self, args):
+  '''\n\tDescription: Display the capture list
+    \tUsage: stop_phish\n'''
+  if exists(credentials):
+   with open(credentials, 'rt') as f:
+    newline = True
+    for cred in f:
+     try:
+      print '{}\t{}'.format('\n' if newline else '', cred.replace('\n', ''))
+      newline = False if newline else newline
+     except:break

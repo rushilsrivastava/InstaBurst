@@ -2,7 +2,8 @@
 # Author: Ethical-H4CK3R
 # Description: Contains configurations
 
-credentials = 'accounts.lst'
+version = '0.1.1'
+credentials = 'accounts.txt'
 database_path = 'sessions/sessions.db'
 
 # colors 
@@ -14,6 +15,14 @@ colors = {
  'yellow': '\033[33m'
  }
 
+_colors = {
+ 'red': ['\x1b[0;31m', '\x1b[2;31m'],
+	'blue': ['\x1b[0;34m', '\x1b[2;34m'], 
+	'green': ['\x1b[0;32m', '\x1b[2;32m'],
+	'white': ['\x1b[0;37m', '\x1b[2;37m'],
+	'yellow': ['\x1b[0;33m', '\x1b[;33m']
+}
+
 # tor
 tor_ip = '127.0.0.1'
 tor_port = 9050
@@ -24,6 +33,7 @@ ip_fetch_timeout = 10
 network_manager_time = 75
 
 # limits
+banners_tabs_amt  = 2 # the total amount of tabs 
 proxies_max_size_ = 8 # total amount of proxies to store
 proxies_wait_time = 1 # time to wait before retying IP fetch
 failures_max_size = 32 # after this amount of fails change the ip

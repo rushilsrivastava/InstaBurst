@@ -7,7 +7,7 @@ from lib.console import Console
 from lib.session import Database
 
 class Instagram(Console, Database):
-
+	
  def run(self):
   self.create_table()
   self.cmdloop()

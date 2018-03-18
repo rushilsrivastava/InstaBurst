@@ -6,9 +6,6 @@ import sqlite3
 from constants import database_path
  
 class Database(object):
- # def __init__(self):
- #  super(Database, self).__init__()
-
  def create_table(self):
   database = sqlite3.connect(database_path)
   cursor = database.cursor()
@@ -38,8 +35,10 @@ class Database(object):
 
  def display_sessions(self):
   database = sqlite3.connect(database_path)
-  for _, data in enumerate(database.cursor().execute('SELECT * FROM Sessions').fetchall()):
-   print '\n[ID]: {}\nAttempts: {}\nSession: {}\n'.format(_, data[5], [str(_) for _ in data[2:4]])
+  _data = database.cursor().execute('SELECT * FROM Sessions').fetchall()
+  for _, data in enumerate(_data):
+   print '\n[ID]: {}\nAttempts: {}\nSession: {}'.format(_, data[3], [str(_) for _ in data[1:3]])
+  if _data:print
   database.close()
 
  def delete(self, ID):

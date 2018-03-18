@@ -18,7 +18,8 @@ class Spyder(object):
   return session 
 
  def restart_net_manager(self):
-  shell('service network-manager restart')
+  if self.is_alive:
+   shell('service network-manager restart')
 
  @property
  def ip_addr(self):
