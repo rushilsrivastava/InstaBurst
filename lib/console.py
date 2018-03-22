@@ -417,7 +417,7 @@ class Console(Cmd, object):
 
  def do_capture_list(self, args):
   '''\n\tDescription: Display the capture list
-    \tUsage: stop_phish\n'''
+    \tUsage: capture_list\n'''
   if exists(credentials):
    with open(credentials, 'rt') as f:
     newline = True
