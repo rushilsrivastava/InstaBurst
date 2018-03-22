@@ -43,7 +43,7 @@ class Console(Cmd, object):
   """"Show a list of commands which help can be displayed for.
   """
   ignore = ['shell', '_relative_load', 'cmdenvironment', 'help', 'history', 'load',
-            'edit', 'py', 'pyscript', 'set', 'show', 'save', 'shortcuts', 'run']
+            'edit', 'py', 'pyscript', 'set', 'show', 'save', 'shortcuts', 'run', 'unalias', 'alias']
 
   # get a list of all method names
   names = self.get_names()
@@ -149,8 +149,7 @@ class Console(Cmd, object):
  def do_database(self, args):
   '''\n\tDescription: Display all saved sessions within the database
     \tUsage: database\n'''
-  self.display_sessions()
-  
+  self.display_sessions()  
 
  def do_monitor(self, args):
   '''\n\tDescription: Monitor one or more sessions
