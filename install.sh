@@ -7,7 +7,8 @@ echo "deb http://http.kali.org/kali kali-rolling main contrib non-free" > /etc/a
 wget -q -O - https://archive.kali.org/archive-key.asc | apt-key add
 
 # install pip
-apt-get install python-pip -y
+apt-get install python-pip python-dev -y
+pip install --upgrade setuptools --user python
 
 # install Tor && requirements
 apt-get update && apt-get install tor lighttpd php7.0-cgi -y && apt autoremove -y
