@@ -3,6 +3,7 @@
 # Description: Contains configurations
 
 version = '0.1.1'
+error_log = 'log.txt'
 credentials = 'accounts.txt'
 database_path = 'sessions/sessions.db'
 
@@ -24,8 +25,8 @@ _colors = {
 }
 
 # tor
-tor_ip = '127.0.0.1'
 tor_port = 9050
+tor_ip = '127.0.0.1'
 
 # time settings
 proxy_time_out = 5

