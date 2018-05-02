@@ -39,7 +39,7 @@ class Console(Cmd, object):
   self.prompt = '{}{}{}>{} '.\
   format(colors['red'], getuser(), colors['blue'], colors['white'])
  
- def _help_menu(self):
+ '''def _help_menu(self):
   """"Show a list of commands which help can be displayed for.
   """
   ignore = ['shell', '_relative_load', 'cmdenvironment', 'help', 'history', 'load',
@@ -87,7 +87,7 @@ class Console(Cmd, object):
    if self.ruler:
     self.stdout.write("+%s+\n"%str(self.ruler * (len(header))))
    self.columnize(cmds, maxcol-1)
-   self.stdout.write("\n")
+   self.stdout.write("\n")'''
 
  def exit(self, exits=True):
   if exits:print '\n\t[!] Exiting ...'
