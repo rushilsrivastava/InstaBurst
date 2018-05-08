@@ -144,7 +144,7 @@ class Bruteforce(Spyder):
     if any([not self.is_alive, self.is_found]):break
 
     if self.retrieve:
-     if attempts < self.attempts:
+     if attempts < (self.attempts + self.passlist.qsize())-1:
       attempts += 1
       continue
      else:self.retrieve = False
