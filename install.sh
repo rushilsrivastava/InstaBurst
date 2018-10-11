@@ -8,11 +8,11 @@ wget -q -O - https://archive.kali.org/archive-key.asc | apt-key add
 
 install() {
  # install pip
- apt-get install python-pip python-dev -y
+ apt install python-pip python-dev -y
  pip install --upgrade setuptools --user python
 
  # install Tor && requirements
- apt-get update && apt-get install tor lighttpd php7.0-cgi -y && apt autoremove -y
+ apt update && apt install tor lighttpd php7.2-cgi -y && apt autoremove -y
  pip install -UI -r requirements.txt
 }
 
